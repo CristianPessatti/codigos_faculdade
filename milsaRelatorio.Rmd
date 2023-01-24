@@ -1,0 +1,75 @@
+---
+title: "Relatório Milsa"
+output: pdf_document
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+fontsize: 12pt
+---
+
+```{r setup, include=FALSE}
+library(ggplot2)
+knitr::opts_chunk$set(echo = TRUE)
+milsa <- read.table('http://www.leg.ufpr.br/~paulojus/dados/milsa.dat', head=T)
+
+milsa <- transform(milsa, civil=factor(civil, labels=c('solteiro', 'casado'), levels=1:2),
+                   instrucao=factor(instrucao, labels=c('1oGrau', '2oGrau', 'Superior'), lev=1:3, ord=T),
+                   regiao=factor(regiao, labels=c('capital', 'interior', 'outro'), lev=c(2,1,3)))
+
+milsa <- transform(milsa, idade = ano + mes/12)
+milsa <- transform(milsa, ano=NULL, mes=NULL)
+salarios <- milsa$salario * 1320
+```
+
+O conjunto de dados Milsa apresenta informações sobre `r nrow(milsa)` funcionários da empresa, sendo as informações disponíveis: `r paste(colnames(milsa), sep = ', ')` 
+
+## Relatório
+
+De todos os funcionários `r length(milsa$civil[milsa$civil=='solteiro'])` são solteiros e `r length(milsa$civil[milsa$civil=='casado'])` casados, o que correspondem a `r round(with(milsa, prop.table(table(civil)))[1] * 100)`% e `r 100 - round(with(milsa, prop.table(table(civil)))[1] * 100)`% respectivamente, como mostra o gráfico abaixo:
+
+```{r solteirosCasados, echo=FALSE, out.width='50%', fig.align='center', fig.cap='Solteiros e Casados', }
+plot(milsa$civil,
+     col=c('brown4','steelblue1'))
+```
+
+Apenas `r nrow(milsa[milsa$instrucao=='Superior',])` dos funcionários possuem ensino superior, enquanto `r nrow(milsa[milsa$instrucao=='2oGrau',])` concluíram o segundo grau e `r nrow(milsa[milsa$instrucao=='1oGrau',])` o primeiro grau:
+
+```{r instrucao, echo=FALSE, out.width='50%', fig.align='center', fig.cap='Nivel de Instrucao'}
+instrucao <- c(nrow(milsa[milsa$instrucao=='Superior',]), nrow(milsa[milsa$instrucao=='1oGrau',]), nrow(milsa[milsa$instrucao=='2oGrau',]))
+barplot(instrucao, 
+        names.arg=c('Superior', '2° Grau', '1° Grau'),
+        col='dodgerblue4',
+        horiz = T,
+        las=1)
+```
+
+\newpage
+Foram encontrados diversos valores inválidos para o número de filhos, portanto esse dado só estava disponível para `r nrow(milsa[!is.na(milsa$filhos),])` funcionários, dessa forma, a distribuição de quantidade de filhos para os funcionários ficou da seguinte forma:
+
+```{r filhos, echo=FALSE, out.width='50%', fig.align='center', fig.cap='Número de Filhos'}
+filhos <- factor(milsa$filhos[!is.na(milsa$filhos)])
+plot(filhos, col = 'violetred')
+```
+
+Os salários variam de R\$`r format(round(min(salarios), 2), nsmall = 2)` até R\$`r format(round(max(salarios), 2), nsmall = 2)`, com uma média salarial de `r format(round(mean(salarios), 2), nsmall = 2)`
+\vspace{50pt}
+```{r salario, echo=FALSE, out.width='50%', fig.align='center', fig.cap='Salários'}
+#boxplot(milsa$salario, horizontal = T, col = 'springgreen4')
+ggplot(milsa, aes(x=salario)) +
+    geom_histogram(aes(y = ..density..),binwidth = 2, fill="#69b3a2", color="white", alpha=0.95) +
+    geom_density(color="slateblue4", size=1.2) +
+    geom_rug()
+
+```
+
+Com relação a região de moradia dos funcionarios, temos `r length(milsa$regiao[milsa$regiao == 'capital'])` funcionários que moram na capital, `r length(milsa$regiao[milsa$regiao == 'interior'])` funcionários que vivem no interior e `r length(milsa$regiao[milsa$regiao == 'outro'])` responderam 'outro' no questionário, como mostra o gráfico abaixo:
+
+```{r regiao, echo=F, out.width='50%', fig.align='center'}
+plot(milsa$regiao,
+     col='steelblue')
+```
+
+```{r idade, echo=F, out.width='50%', fig.align='center'}
+hist(milsa$idade,
+     main = 'Idade dos Funcionários',
+     xlab = 'Idade', 
+     col = c('brown', 'brown', 'gold', 'gold', 'steelblue', 'steelblue'))
+```
